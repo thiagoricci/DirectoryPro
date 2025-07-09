@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, Lock, User, Building } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthFormProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export function AuthForm({ onSuccess }: AuthFormProps) {
@@ -19,15 +22,40 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     company: ''
   });
 
+  const { login, signup } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent, isSignUp: boolean) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsLoading(false);
-    onSuccess();
+    try {
+      if (isSignUp) {
+        await signup(formData.email, formData.password, formData.name);
+      } else {
+        await login(formData.email, formData.password);
+      }
+      
+      toast({
+        title: isSignUp ? "Account created" : "Login successful",
+        description: "Welcome to Directory Pro!",
+      });
+      
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Authentication failed. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
