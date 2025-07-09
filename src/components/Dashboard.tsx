@@ -16,6 +16,12 @@ interface Provider {
   notes?: string;
 }
 
+interface Client {
+  id: string;
+  email: string;
+  addedAt: string;
+}
+
 export function Dashboard() {
   const [providers, setProviders] = useState<Provider[]>([
     {
@@ -44,6 +50,8 @@ export function Dashboard() {
     }
   ]);
 
+  const [clients, setClients] = useState<Client[]>([]);
+  const [newClientEmail, setNewClientEmail] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProvider, setNewProvider] = useState({
@@ -75,7 +83,21 @@ export function Dashboard() {
     setProviders(providers.filter(p => p.id !== id));
   };
 
-  const shareableUrl = `${window.location.origin}/directory/shared-link-example`;
+  const handleAddClient = () => {
+    if (newClientEmail && newClientEmail.includes('@')) {
+      const client: Client = {
+        id: Date.now().toString(),
+        email: newClientEmail,
+        addedAt: new Date().toISOString()
+      };
+      setClients([...clients, client]);
+      setNewClientEmail('');
+    }
+  };
+
+  const handleRemoveClient = (id: string) => {
+    setClients(clients.filter(c => c.id !== id));
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -115,18 +137,35 @@ export function Dashboard() {
 
         <Card className="bg-accent border-accent">
           <CardContent className="p-6">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Shareable Directory Link</p>
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">Client Access Management</p>
               <div className="flex items-center space-x-2">
                 <Input
-                  value={shareableUrl}
-                  readOnly
+                  placeholder="Enter client email..."
+                  value={newClientEmail}
+                  onChange={(e) => setNewClientEmail(e.target.value)}
                   className="text-sm"
                 />
-                <Button size="sm" variant="outline">
-                  <ExternalLink className="h-4 w-4" />
+                <Button size="sm" onClick={handleAddClient}>
+                  Add Client
                 </Button>
               </div>
+              {clients.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">{clients.length} client(s) with access</p>
+                  {clients.slice(0, 2).map((client) => (
+                    <div key={client.id} className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{client.email}</span>
+                      <Button size="sm" variant="ghost" onClick={() => handleRemoveClient(client.id)}>
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                  {clients.length > 2 && (
+                    <p className="text-xs text-muted-foreground">+{clients.length - 2} more</p>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -99,12 +99,12 @@ const Home = () => {
             >
               <Link to="/dashboard">View Realtor Dashboard</Link>
             </Button>
-            <Button 
+             <Button 
               variant="outline"
               asChild
               className="text-lg px-6"
             >
-              <Link to="/directory/demo">View Client Directory</Link>
+              <Link to="/client-login">Client Directory Access</Link>
             </Button>
           </div>
         </div>

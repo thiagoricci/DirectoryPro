@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Phone, Mail, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, Phone, Mail, User, LogOut } from 'lucide-react';
 
 interface Provider {
   id: string;
@@ -51,8 +52,27 @@ const sampleProviders: Provider[] = [
 ];
 
 export function ClientDirectory() {
+  const [clientEmail, setClientEmail] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+
+  useEffect(() => {
+    const email = localStorage.getItem('clientEmail');
+    if (!email) {
+      window.location.href = '/client-login';
+      return;
+    }
+    setClientEmail(email);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('clientEmail');
+    window.location.href = '/client-login';
+  };
+
+  if (!clientEmail) {
+    return null; // Will redirect to login
+  }
   
   const filteredProviders = sampleProviders.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -68,6 +88,15 @@ export function ClientDirectory() {
       {/* Header */}
       <div className="bg-card border-b">
         <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-start mb-6">
+            <div className="text-sm text-muted-foreground">
+              Logged in as: {clientEmail}
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
           <div className="text-center max-w-2xl mx-auto">
             <div className="flex items-center justify-center mb-4">
               <div className="h-12 w-12 rounded-xl bg-primary mr-3"></div>

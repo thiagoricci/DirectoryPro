@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { Layout } from "./components/Layout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import ClientLogin from "./pages/ClientLogin";
 import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
 import ClientDirectory from "./pages/ClientDirectory";
@@ -25,8 +26,10 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/client-login" element={<ClientLogin />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/directory" element={<ClientDirectory />} />
               <Route path="/directory/:realtorId" element={<ClientDirectory />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
