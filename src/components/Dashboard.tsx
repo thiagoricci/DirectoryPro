@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, ExternalLink, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Search, Edit, Trash2, ExternalLink, Users, Upload, Download } from 'lucide-react';
+import Papa from 'papaparse';
 
 interface Provider {
   id: string;
@@ -23,6 +26,9 @@ interface Client {
 }
 
 export function Dashboard() {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [providers, setProviders] = useState<Provider[]>([
     {
       id: '1',
@@ -54,6 +60,7 @@ export function Dashboard() {
   const [newClientEmail, setNewClientEmail] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [newProvider, setNewProvider] = useState({
     name: '',
     category: '',
@@ -97,6 +104,76 @@ export function Dashboard() {
 
   const handleRemoveClient = (id: string) => {
     setClients(clients.filter(c => c.id !== id));
+  };
+
+  const downloadTemplate = () => {
+    const template = `Name,Category,Phone,Email,Notes
+Mike's Plumbing Solutions,Plumbing,(555) 123-4567,mike@plumbing.com,Available 24/7
+Elite Home Inspections,Home Inspector,(555) 987-6543,info@elite.com,Very thorough`;
+    
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'provider-template.csv';
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      complete: (results) => {
+        const validProviders: Provider[] = [];
+        const errors: string[] = [];
+
+        results.data.forEach((row: any, index: number) => {
+          if (!row.Name || !row.Category) {
+            errors.push(`Row ${index + 2}: Name and Category are required`);
+            return;
+          }
+
+          validProviders.push({
+            id: Date.now().toString() + index,
+            name: row.Name,
+            category: row.Category,
+            phone: row.Phone || '',
+            email: row.Email || '',
+            notes: row.Notes || ''
+          });
+        });
+
+        if (errors.length > 0) {
+          toast({
+            title: "Import Warnings",
+            description: `${validProviders.length} providers imported. ${errors.length} rows had errors.`,
+          });
+        } else {
+          toast({
+            title: "Import Successful",
+            description: `Successfully imported ${validProviders.length} providers.`,
+          });
+        }
+
+        setProviders([...providers, ...validProviders]);
+        setShowImportDialog(false);
+      },
+      error: (error) => {
+        toast({
+          title: "Import Error",
+          description: "Failed to parse the CSV file. Please check the format.",
+          variant: "destructive",
+        });
+      }
+    });
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -182,10 +259,46 @@ export function Dashboard() {
             className="pl-10"
           />
         </div>
-        <Button onClick={() => setShowAddForm(true)} className="whitespace-nowrap">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Provider
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="whitespace-nowrap">
+                <Upload className="h-4 w-4 mr-2" />
+                Bulk Import
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Import Service Providers</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Upload a CSV file with your service providers. Required columns: Name, Category
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={downloadTemplate} size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Template
+                  </Button>
+                </div>
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                  <Label htmlFor="csvFile">CSV File</Label>
+                  <Input
+                    ref={fileInputRef}
+                    id="csvFile"
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                  />
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={() => setShowAddForm(true)} className="whitespace-nowrap">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Provider
+          </Button>
+        </div>
       </div>
 
       {/* Add Provider Form */}
