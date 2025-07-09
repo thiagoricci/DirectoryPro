@@ -52,11 +52,14 @@ const sampleProviders: Provider[] = [
 
 export function ClientDirectory() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   
-  const filteredProviders = sampleProviders.filter(provider =>
-    provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    provider.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProviders = sampleProviders.filter(provider => {
+    const matchesSearch = provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         provider.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || provider.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const categories = [...new Set(sampleProviders.map(p => p.category))];
 
@@ -83,8 +86,9 @@ export function ClientDirectory() {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Search */}
-        <div className="mb-8">
+        {/* Search and Filters */}
+        <div className="mb-8 space-y-6">
+          {/* Search Bar */}
           <div className="relative max-w-md mx-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
             <Input
@@ -94,18 +98,61 @@ export function ClientDirectory() {
               className="pl-12 py-3 text-lg"
             />
           </div>
-        </div>
 
-        {/* Category badges */}
-        <div className="mb-8 text-center">
-          <p className="text-sm text-muted-foreground mb-3">Service Categories Available:</p>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {categories.map((category) => (
-              <Badge key={category} variant="secondary" className="text-sm">
-                {category}
+          {/* Category Filters */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-3">Filter by Service Category:</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <Badge 
+                variant={selectedCategory === '' ? "default" : "secondary"} 
+                className="cursor-pointer text-sm transition-colors hover:bg-primary/80"
+                onClick={() => setSelectedCategory('')}
+              >
+                All Services
               </Badge>
-            ))}
+              {categories.map((category) => (
+                <Badge 
+                  key={category} 
+                  variant={selectedCategory === category ? "default" : "secondary"}
+                  className="cursor-pointer text-sm transition-colors hover:bg-primary/80"
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </Badge>
+              ))}
+            </div>
           </div>
+
+          {/* Active Filters Display */}
+          {(searchTerm || selectedCategory) && (
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">Active filters:</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {searchTerm && (
+                  <Badge variant="outline" className="text-xs">
+                    Search: "{searchTerm}"
+                    <button 
+                      onClick={() => setSearchTerm('')}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {selectedCategory && (
+                  <Badge variant="outline" className="text-xs">
+                    Category: {selectedCategory}
+                    <button 
+                      onClick={() => setSelectedCategory('')}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Providers Grid */}
@@ -161,11 +208,24 @@ export function ClientDirectory() {
           <Card className="text-center py-12">
             <CardContent>
               <p className="text-muted-foreground text-lg">
-                No providers found matching "{searchTerm}"
+                No providers found
+                {searchTerm && ` matching "${searchTerm}"`}
+                {selectedCategory && ` in ${selectedCategory}`}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                Try searching for a different service type or provider name
+                Try adjusting your search or filter criteria
               </p>
+              {(searchTerm || selectedCategory) && (
+                <button 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedCategory('');
+                  }}
+                  className="mt-3 text-primary hover:underline text-sm"
+                >
+                  Clear all filters
+                </button>
+              )}
             </CardContent>
           </Card>
         )}
