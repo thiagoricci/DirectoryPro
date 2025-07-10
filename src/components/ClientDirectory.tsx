@@ -16,12 +16,35 @@ interface Provider {
   contact_name?: string;
 }
 
+interface RealtorSettings {
+  business_name: string;
+  tagline: string;
+  logo_url?: string;
+  primary_color: string;
+  secondary_color: string;
+  accent_color: string;
+  contact_email?: string;
+  contact_phone?: string;
+  bio: string;
+}
+
 export function ClientDirectory() {
   const [clientEmail, setClientEmail] = useState<string>('');
   const [realtorName, setRealtorName] = useState<string>('');
   const [realtorCompany, setRealtorCompany] = useState<string>('');
   const [realtorUserId, setRealtorUserId] = useState<string>('');
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [realtorSettings, setRealtorSettings] = useState<RealtorSettings>({
+    business_name: 'Your Real Estate Business',
+    tagline: 'Trusted Service Providers',
+    logo_url: '',
+    primary_color: '#3b82f6',
+    secondary_color: '#1e40af',
+    accent_color: '#06b6d4',
+    contact_email: '',
+    contact_phone: '',
+    bio: 'Professional real estate services with a curated network of trusted providers.',
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +67,7 @@ export function ClientDirectory() {
     setRealtorCompany(company || '');
     
     fetchProviders(userId);
+    fetchRealtorSettings(userId);
   }, []);
 
   const fetchProviders = async (userId: string) => {
@@ -76,6 +100,37 @@ export function ClientDirectory() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchRealtorSettings = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('realtor_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Error fetching realtor settings:', error);
+        return;
+      }
+
+      if (data) {
+        setRealtorSettings({
+          business_name: data.business_name,
+          tagline: data.tagline,
+          logo_url: data.logo_url || '',
+          primary_color: data.primary_color,
+          secondary_color: data.secondary_color,
+          accent_color: data.accent_color,
+          contact_email: data.contact_email || '',
+          contact_phone: data.contact_phone || '',
+          bio: data.bio,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching realtor settings:', error);
     }
   };
 
@@ -116,20 +171,32 @@ export function ClientDirectory() {
           </div>
           <div className="text-center max-w-2xl mx-auto">
             <div className="flex items-center justify-center mb-4">
-              <div className="h-12 w-12 rounded-xl bg-primary mr-3"></div>
+              {realtorSettings.logo_url ? (
+                <div className="h-12 w-12 rounded-xl mr-3 overflow-hidden">
+                  <img 
+                    src={realtorSettings.logo_url} 
+                    alt="Business Logo" 
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div 
+                  className="h-12 w-12 rounded-xl mr-3"
+                  style={{ backgroundColor: realtorSettings.primary_color }}
+                ></div>
+              )}
               <div className="text-left">
                 <h1 className="text-2xl font-bold text-foreground">
-                  {realtorName || 'Your Realtor'}
+                  {realtorSettings.business_name}
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {realtorCompany || 'Licensed Real Estate Agent'}
                 </p>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-foreground mb-2">Trusted Service Providers</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-2">{realtorSettings.tagline}</h2>
             <p className="text-muted-foreground">
-              These are {realtorName ? `${realtorName}'s` : 'your realtor\'s'} personally recommended professionals for all your home-related needs. 
-              They have been carefully selected to provide you with excellent service.
+              {realtorSettings.bio}
             </p>
           </div>
         </div>
@@ -290,9 +357,29 @@ export function ClientDirectory() {
 
             {/* Footer */}
             <div className="mt-12 text-center py-8 border-t">
-              <p className="text-sm text-muted-foreground">
-                Questions about these recommendations? Contact {realtorName || 'your realtor'} for more information.
+              <p className="text-sm text-muted-foreground mb-2">
+                Questions about these recommendations? Contact {realtorSettings.business_name} for more information.
               </p>
+              {(realtorSettings.contact_email || realtorSettings.contact_phone) && (
+                <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+                  {realtorSettings.contact_email && (
+                    <a 
+                      href={`mailto:${realtorSettings.contact_email}`}
+                      className="hover:text-primary transition-colors"
+                    >
+                      📧 {realtorSettings.contact_email}
+                    </a>
+                  )}
+                  {realtorSettings.contact_phone && (
+                    <a 
+                      href={`tel:${realtorSettings.contact_phone}`}
+                      className="hover:text-primary transition-colors"
+                    >
+                      📞 {realtorSettings.contact_phone}
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}

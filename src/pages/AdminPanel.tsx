@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Palette, Eye, Save, RotateCcw, Plus, Trash2, Users } from 'lucide-react';
+import { Upload, Palette, Eye, Save, RotateCcw, Plus, Trash2, Users, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,29 +19,85 @@ interface ClientAccess {
   is_active: boolean;
 }
 
+interface RealtorSettings {
+  business_name: string;
+  tagline: string;
+  logo_url?: string;
+  primary_color: string;
+  secondary_color: string;
+  accent_color: string;
+  contact_email?: string;
+  contact_phone?: string;
+  bio: string;
+}
+
 const AdminPanel = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [clientAccess, setClientAccess] = useState<ClientAccess[]>([]);
   const [newClientEmail, setNewClientEmail] = useState('');
   const [isLoadingClients, setIsLoadingClients] = useState(false);
-  const [settings, setSettings] = useState({
-    businessName: 'Your Real Estate Business',
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [settings, setSettings] = useState<RealtorSettings>({
+    business_name: 'Your Real Estate Business',
     tagline: 'Trusted Service Providers',
-    primaryColor: '#3b82f6',
-    secondaryColor: '#1e40af',
-    accentColor: '#06b6d4',
-    contactEmail: 'contact@yourbusiness.com',
-    contactPhone: '(555) 123-4567',
+    logo_url: '',
+    primary_color: '#3b82f6',
+    secondary_color: '#1e40af',
+    accent_color: '#06b6d4',
+    contact_email: '',
+    contact_phone: '',
     bio: 'Professional real estate services with a curated network of trusted providers.',
   });
 
   useEffect(() => {
     if (user) {
       fetchClientAccess();
+      loadSettings();
     }
   }, [user]);
+
+  const loadSettings = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('realtor_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error;
+      }
+
+      if (data) {
+        setSettings({
+          business_name: data.business_name,
+          tagline: data.tagline,
+          logo_url: data.logo_url || '',
+          primary_color: data.primary_color,
+          secondary_color: data.secondary_color,
+          accent_color: data.accent_color,
+          contact_email: data.contact_email || '',
+          contact_phone: data.contact_phone || '',
+          bio: data.bio,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast({
+        title: "Error loading settings",
+        description: "Failed to load your branding settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchClientAccess = async () => {
     if (!user) return;
@@ -148,33 +204,120 @@ const AdminPanel = () => {
     }
   };
 
-  const handleSave = () => {
-    // Save settings logic here
-    toast({
-      title: "Settings Saved",
-      description: "Your branding settings have been updated successfully.",
-    });
+  const handleSave = async () => {
+    if (!user) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('realtor_settings')
+        .upsert({
+          user_id: user.id,
+          ...settings,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Settings Saved",
+        description: "Your branding settings have been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error saving settings",
+        description: "Failed to save your branding settings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = () => {
-    // Reset to defaults
     setSettings({
-      businessName: 'Your Real Estate Business',
+      business_name: 'Your Real Estate Business',
       tagline: 'Trusted Service Providers',
-      primaryColor: '#3b82f6',
-      secondaryColor: '#1e40af',
-      accentColor: '#06b6d4',
-      contactEmail: 'contact@yourbusiness.com',
-      contactPhone: '(555) 123-4567',
+      logo_url: '',
+      primary_color: '#3b82f6',
+      secondary_color: '#1e40af',
+      accent_color: '#06b6d4',
+      contact_email: '',
+      contact_phone: '',
       bio: 'Professional real estate services with a curated network of trusted providers.',
     });
-    setLogoFile(null);
   };
 
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setLogoFile(file);
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 2MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Delete old logo if exists
+      if (settings.logo_url) {
+        const oldPath = settings.logo_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('realtor-logos')
+            .remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload new logo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('realtor-logos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('realtor-logos')
+        .getPublicUrl(filePath);
+
+      setSettings({ ...settings, logo_url: data.publicUrl });
+
+      toast({
+        title: "Logo uploaded",
+        description: "Your logo has been uploaded successfully. Don't forget to save your settings.",
+      });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload logo. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -197,8 +340,12 @@ const AdminPanel = () => {
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset
           </Button>
-          <Button onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" />
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             Save Changes
           </Button>
         </div>
@@ -222,56 +369,65 @@ const AdminPanel = () => {
                   <CardTitle>Logo & Business Identity</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="logo">Business Logo</Label>
-                    <div className="mt-2 flex items-center gap-4">
-                      <div className="h-20 w-20 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center">
-                        {logoFile ? (
-                          <img 
-                            src={URL.createObjectURL(logoFile)} 
-                            alt="Logo preview" 
-                            className="h-full w-full object-cover rounded-lg"
+                    <div>
+                      <Label htmlFor="logo">Business Logo</Label>
+                      <div className="mt-2 flex items-center gap-4">
+                        <div className="h-20 w-20 border-2 border-dashed border-muted-foreground/25 rounded-lg flex items-center justify-center overflow-hidden">
+                          {settings.logo_url ? (
+                            <img 
+                              src={settings.logo_url} 
+                              alt="Logo preview" 
+                              className="h-full w-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <Upload className="h-8 w-8 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div>
+                          <Input
+                            ref={fileInputRef}
+                            id="logo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
                           />
-                        ) : (
-                          <Upload className="h-8 w-8 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div>
-                        <Input
-                          id="logo"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          className="hidden"
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={() => document.getElementById('logo')?.click()}
-                        >
-                          <Upload className="mr-2 h-4 w-4" />
-                          Upload Logo
-                        </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                          >
+                            {uploading ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Upload className="mr-2 h-4 w-4" />
+                            )}
+                            {settings.logo_url ? 'Change Logo' : 'Upload Logo'}
+                          </Button>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PNG, JPG up to 2MB
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <Label htmlFor="businessName">Business Name</Label>
-                    <Input
-                      id="businessName"
-                      value={settings.businessName}
-                      onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="businessName">Business Name</Label>
+                      <Input
+                        id="businessName"
+                        value={settings.business_name}
+                        onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="tagline">Tagline</Label>
-                    <Input
-                      id="tagline"
-                      value={settings.tagline}
-                      onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="tagline">Tagline</Label>
+                      <Input
+                        id="tagline"
+                        value={settings.tagline}
+                        onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
+                      />
+                    </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -293,9 +449,9 @@ const AdminPanel = () => {
                           className="h-auto p-3 flex flex-col items-start"
                           onClick={() => setSettings({
                             ...settings,
-                            primaryColor: preset.primary,
-                            secondaryColor: preset.secondary,
-                            accentColor: preset.accent,
+                            primary_color: preset.primary,
+                            secondary_color: preset.secondary,
+                            accent_color: preset.accent,
                           })}
                         >
                           <div className="flex gap-1 mb-1">
@@ -324,8 +480,8 @@ const AdminPanel = () => {
                       <Input
                         id="primaryColor"
                         type="color"
-                        value={settings.primaryColor}
-                        onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                        value={settings.primary_color}
+                        onChange={(e) => setSettings({ ...settings, primary_color: e.target.value })}
                         className="h-10"
                       />
                     </div>
@@ -334,8 +490,8 @@ const AdminPanel = () => {
                       <Input
                         id="secondaryColor"
                         type="color"
-                        value={settings.secondaryColor}
-                        onChange={(e) => setSettings({ ...settings, secondaryColor: e.target.value })}
+                        value={settings.secondary_color}
+                        onChange={(e) => setSettings({ ...settings, secondary_color: e.target.value })}
                         className="h-10"
                       />
                     </div>
@@ -344,8 +500,8 @@ const AdminPanel = () => {
                       <Input
                         id="accentColor"
                         type="color"
-                        value={settings.accentColor}
-                        onChange={(e) => setSettings({ ...settings, accentColor: e.target.value })}
+                        value={settings.accent_color}
+                        onChange={(e) => setSettings({ ...settings, accent_color: e.target.value })}
                         className="h-10"
                       />
                     </div>
@@ -361,34 +517,34 @@ const AdminPanel = () => {
                   <CardTitle>Contact Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="contactEmail">Contact Email</Label>
-                    <Input
-                      id="contactEmail"
-                      type="email"
-                      value={settings.contactEmail}
-                      onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="contactEmail">Contact Email</Label>
+                      <Input
+                        id="contactEmail"
+                        type="email"
+                        value={settings.contact_email}
+                        onChange={(e) => setSettings({ ...settings, contact_email: e.target.value })}
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="contactPhone">Contact Phone</Label>
-                    <Input
-                      id="contactPhone"
-                      value={settings.contactPhone}
-                      onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="contactPhone">Contact Phone</Label>
+                      <Input
+                        id="contactPhone"
+                        value={settings.contact_phone}
+                        onChange={(e) => setSettings({ ...settings, contact_phone: e.target.value })}
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="bio">About / Bio</Label>
-                    <Textarea
-                      id="bio"
-                      rows={4}
-                      value={settings.bio}
-                      onChange={(e) => setSettings({ ...settings, bio: e.target.value })}
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="bio">About / Bio</Label>
+                      <Textarea
+                        id="bio"
+                        rows={4}
+                        value={settings.bio}
+                        onChange={(e) => setSettings({ ...settings, bio: e.target.value })}
+                      />
+                    </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -500,22 +656,24 @@ const AdminPanel = () => {
             <CardContent>
               <div className="border rounded-lg p-4 bg-background">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div 
-                    className="h-12 w-12 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: settings.primaryColor }}
-                  >
-                    {logoFile ? (
+                  {settings.logo_url ? (
+                    <div className="h-12 w-12 rounded-lg overflow-hidden">
                       <img 
-                        src={URL.createObjectURL(logoFile)} 
+                        src={settings.logo_url} 
                         alt="Logo" 
-                        className="h-full w-full object-cover rounded-lg"
+                        className="h-full w-full object-cover"
                       />
-                    ) : (
+                    </div>
+                  ) : (
+                    <div 
+                      className="h-12 w-12 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: settings.primary_color }}
+                    >
                       <div className="h-8 w-8 bg-white/20 rounded"></div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   <div>
-                    <h3 className="font-bold text-foreground">{settings.businessName}</h3>
+                    <h3 className="font-bold text-foreground">{settings.business_name}</h3>
                     <p className="text-sm text-muted-foreground">{settings.tagline}</p>
                   </div>
                 </div>
@@ -524,7 +682,7 @@ const AdminPanel = () => {
                   <p className="text-muted-foreground">{settings.bio}</p>
                   <div className="flex gap-1">
                     <Badge 
-                      style={{ backgroundColor: settings.accentColor }}
+                      style={{ backgroundColor: settings.accent_color }}
                       className="text-white"
                     >
                       Professional

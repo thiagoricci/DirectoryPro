@@ -68,6 +68,54 @@ export type Database = {
         }
         Relationships: []
       }
+      realtor_settings: {
+        Row: {
+          accent_color: string | null
+          bio: string | null
+          business_name: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          tagline: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          bio?: string | null
+          business_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          bio?: string | null
+          business_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       service_providers: {
         Row: {
           category: string
