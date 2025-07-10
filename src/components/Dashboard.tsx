@@ -14,6 +14,7 @@ interface Provider {
   id: string;
   name: string;
   category: string;
+  contactName?: string;
   phone?: string;
   email?: string;
   notes?: string;
@@ -34,6 +35,7 @@ export function Dashboard() {
       id: '1',
       name: 'Mike\'s Plumbing Solutions',
       category: 'Plumbing',
+      contactName: 'Mike Johnson',
       phone: '(555) 123-4567',
       email: 'mike@plumbingsolutions.com',
       notes: 'Available 24/7 for emergencies'
@@ -42,6 +44,7 @@ export function Dashboard() {
       id: '2',
       name: 'Elite Home Inspections',
       category: 'Home Inspector',
+      contactName: 'Sarah Chen',
       phone: '(555) 987-6543',
       email: 'info@eliteinspections.com',
       notes: 'Very thorough, great reports'
@@ -50,6 +53,7 @@ export function Dashboard() {
       id: '3',
       name: 'First National Mortgage',
       category: 'Lender',
+      contactName: 'David Rodriguez',
       phone: '(555) 456-7890',
       email: 'loans@firstnational.com',
       notes: 'Fast pre-approvals'
@@ -64,6 +68,7 @@ export function Dashboard() {
   const [newProvider, setNewProvider] = useState({
     name: '',
     category: '',
+    contactName: '',
     phone: '',
     email: '',
     notes: ''
@@ -81,7 +86,7 @@ export function Dashboard() {
         ...newProvider
       };
       setProviders([...providers, provider]);
-      setNewProvider({ name: '', category: '', phone: '', email: '', notes: '' });
+      setNewProvider({ name: '', category: '', contactName: '', phone: '', email: '', notes: '' });
       setShowAddForm(false);
     }
   };
@@ -107,9 +112,9 @@ export function Dashboard() {
   };
 
   const downloadTemplate = () => {
-    const template = `Name,Category,Phone,Email,Notes
-Mike's Plumbing Solutions,Plumbing,(555) 123-4567,mike@plumbing.com,Available 24/7
-Elite Home Inspections,Home Inspector,(555) 987-6543,info@elite.com,Very thorough`;
+    const template = `Name,Category,Contact Name,Phone,Email,Notes
+Mike's Plumbing Solutions,Plumbing,Mike Johnson,(555) 123-4567,mike@plumbing.com,Available 24/7
+Elite Home Inspections,Home Inspector,Sarah Chen,(555) 987-6543,info@elite.com,Very thorough`;
     
     const blob = new Blob([template], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -140,6 +145,7 @@ Elite Home Inspections,Home Inspector,(555) 987-6543,info@elite.com,Very thoroug
             id: Date.now().toString() + index,
             name: row.Name,
             category: row.Category,
+            contactName: row['Contact Name'] || '',
             phone: row.Phone || '',
             email: row.Email || '',
             notes: row.Notes || ''
@@ -328,6 +334,15 @@ Elite Home Inspections,Home Inspector,(555) 987-6543,info@elite.com,Very thoroug
                 />
               </div>
               <div>
+                <Label htmlFor="contactName">Contact Name</Label>
+                <Input
+                  id="contactName"
+                  value={newProvider.contactName}
+                  onChange={(e) => setNewProvider({...newProvider, contactName: e.target.value})}
+                  placeholder="e.g., Mike Johnson"
+                />
+              </div>
+              <div>
                 <Label htmlFor="phone">Phone</Label>
                 <Input
                   id="phone"
@@ -376,6 +391,7 @@ Elite Home Inspections,Home Inspector,(555) 987-6543,info@elite.com,Very thoroug
                     <Badge variant="secondary">{provider.category}</Badge>
                   </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
+                    {provider.contactName && <p>👤 {provider.contactName}</p>}
                     {provider.phone && <p>📞 {provider.phone}</p>}
                     {provider.email && <p>✉️ {provider.email}</p>}
                     {provider.notes && <p className="italic">"{provider.notes}"</p>}
