@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,17 +7,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Edit, Trash2, ExternalLink, Users, Upload, Download } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, ExternalLink, Users, Upload, Download, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 
 interface Provider {
   id: string;
   name: string;
   category: string;
-  contactName?: string;
+  contact_name?: string;
   phone?: string;
   email?: string;
   notes?: string;
+  user_id: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface Client {
@@ -30,35 +34,8 @@ export function Dashboard() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [providers, setProviders] = useState<Provider[]>([
-    {
-      id: '1',
-      name: 'Mike\'s Plumbing Solutions',
-      category: 'Plumbing',
-      contactName: 'Mike Johnson',
-      phone: '(555) 123-4567',
-      email: 'mike@plumbingsolutions.com',
-      notes: 'Available 24/7 for emergencies'
-    },
-    {
-      id: '2',
-      name: 'Elite Home Inspections',
-      category: 'Home Inspector',
-      contactName: 'Sarah Chen',
-      phone: '(555) 987-6543',
-      email: 'info@eliteinspections.com',
-      notes: 'Very thorough, great reports'
-    },
-    {
-      id: '3',
-      name: 'First National Mortgage',
-      category: 'Lender',
-      contactName: 'David Rodriguez',
-      phone: '(555) 456-7890',
-      email: 'loans@firstnational.com',
-      notes: 'Fast pre-approvals'
-    }
-  ]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [clients, setClients] = useState<Client[]>([]);
   const [newClientEmail, setNewClientEmail] = useState('');
@@ -68,7 +45,7 @@ export function Dashboard() {
   const [newProvider, setNewProvider] = useState({
     name: '',
     category: '',
-    contactName: '',
+    contact_name: '',
     phone: '',
     email: '',
     notes: ''
@@ -79,20 +56,94 @@ export function Dashboard() {
     provider.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddProvider = () => {
-    if (newProvider.name && newProvider.category) {
-      const provider: Provider = {
-        id: Date.now().toString(),
-        ...newProvider
-      };
-      setProviders([...providers, provider]);
-      setNewProvider({ name: '', category: '', contactName: '', phone: '', email: '', notes: '' });
-      setShowAddForm(false);
+  // Load providers from Supabase
+  useEffect(() => {
+    loadProviders();
+  }, []);
+
+  const loadProviders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('service_providers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProviders(data || []);
+    } catch (error) {
+      toast({
+        title: "Error loading providers",
+        description: "Failed to load service providers from database.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteProvider = (id: string) => {
-    setProviders(providers.filter(p => p.id !== id));
+  const handleAddProvider = async () => {
+    if (!newProvider.name || !newProvider.category) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to add providers.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('service_providers')
+        .insert([{
+          ...newProvider,
+          user_id: user.id
+        }])
+        .select();
+
+      if (error) throw error;
+      
+      if (data) {
+        setProviders([...providers, ...data]);
+        setNewProvider({ name: '', category: '', contact_name: '', phone: '', email: '', notes: '' });
+        setShowAddForm(false);
+        toast({
+          title: "Provider added",
+          description: "Service provider has been added successfully.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error adding provider",
+        description: "Failed to add service provider. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteProvider = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('service_providers')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setProviders(providers.filter(p => p.id !== id));
+      toast({
+        title: "Provider deleted",
+        description: "Service provider has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting provider",
+        description: "Failed to delete service provider. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddClient = () => {
@@ -125,15 +176,26 @@ Elite Home Inspections,Home Inspector,Sarah Chen,(555) 987-6543,info@elite.com,V
     window.URL.revokeObjectURL(url);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     Papa.parse(file, {
       header: true,
-      complete: (results) => {
-        const validProviders: Provider[] = [];
+      complete: async (results) => {
+        const validProviders: Omit<Provider, 'id' | 'created_at' | 'updated_at'>[] = [];
         const errors: string[] = [];
+
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast({
+            title: "Authentication required",
+            description: "Please log in to import providers.",
+            variant: "destructive",
+          });
+          return;
+        }
 
         results.data.forEach((row: any, index: number) => {
           if (!row.Name || !row.Category) {
@@ -142,29 +204,49 @@ Elite Home Inspections,Home Inspector,Sarah Chen,(555) 987-6543,info@elite.com,V
           }
 
           validProviders.push({
-            id: Date.now().toString() + index,
             name: row.Name,
             category: row.Category,
-            contactName: row['Contact Name'] || '',
+            contact_name: row['Contact Name'] || '',
             phone: row.Phone || '',
             email: row.Email || '',
-            notes: row.Notes || ''
+            notes: row.Notes || '',
+            user_id: user.id
           });
         });
 
-        if (errors.length > 0) {
-          toast({
-            title: "Import Warnings",
-            description: `${validProviders.length} providers imported. ${errors.length} rows had errors.`,
-          });
-        } else {
-          toast({
-            title: "Import Successful",
-            description: `Successfully imported ${validProviders.length} providers.`,
-          });
+        if (validProviders.length > 0) {
+          try {
+            const { data, error } = await supabase
+              .from('service_providers')
+              .insert(validProviders)
+              .select();
+
+            if (error) throw error;
+
+            if (data) {
+              setProviders([...providers, ...data]);
+            }
+
+            if (errors.length > 0) {
+              toast({
+                title: "Import Warnings",
+                description: `${validProviders.length} providers imported. ${errors.length} rows had errors.`,
+              });
+            } else {
+              toast({
+                title: "Import Successful",
+                description: `Successfully imported ${validProviders.length} providers.`,
+              });
+            }
+          } catch (error) {
+            toast({
+              title: "Import Error",
+              description: "Failed to save providers to database. Please try again.",
+              variant: "destructive",
+            });
+          }
         }
 
-        setProviders([...providers, ...validProviders]);
         setShowImportDialog(false);
       },
       error: (error) => {
@@ -337,8 +419,8 @@ Elite Home Inspections,Home Inspector,Sarah Chen,(555) 987-6543,info@elite.com,V
                 <Label htmlFor="contactName">Contact Name</Label>
                 <Input
                   id="contactName"
-                  value={newProvider.contactName}
-                  onChange={(e) => setNewProvider({...newProvider, contactName: e.target.value})}
+                  value={newProvider.contact_name}
+                  onChange={(e) => setNewProvider({...newProvider, contact_name: e.target.value})}
                   placeholder="e.g., Mike Johnson"
                 />
               </div>
@@ -380,48 +462,62 @@ Elite Home Inspections,Home Inspector,Sarah Chen,(555) 987-6543,info@elite.com,V
       )}
 
       {/* Providers List */}
-      <div className="space-y-4">
-        {filteredProviders.map((provider) => (
-          <Card key={provider.id} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg font-semibold text-foreground">{provider.name}</h3>
-                    <Badge variant="secondary">{provider.category}</Badge>
-                  </div>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    {provider.contactName && <p>👤 {provider.contactName}</p>}
-                    {provider.phone && <p>📞 {provider.phone}</p>}
-                    {provider.email && <p>✉️ {provider.email}</p>}
-                    {provider.notes && <p className="italic">"{provider.notes}"</p>}
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteProvider(provider.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredProviders.length === 0 && (
+      {loading ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground">No providers found matching your search.</p>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading service providers...</p>
           </CardContent>
         </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredProviders.map((provider) => (
+            <Card key={provider.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="text-lg font-semibold text-foreground">{provider.name}</h3>
+                      <Badge variant="secondary">{provider.category}</Badge>
+                    </div>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      {provider.contact_name && <p>👤 {provider.contact_name}</p>}
+                      {provider.phone && <p>📞 {provider.phone}</p>}
+                      {provider.email && <p>✉️ {provider.email}</p>}
+                      {provider.notes && <p className="italic">"{provider.notes}"</p>}
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteProvider(provider.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {!loading && filteredProviders.length === 0 && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-muted-foreground">
+                  {providers.length === 0 
+                    ? "No service providers yet. Add your first provider above!"
+                    : "No providers found matching your search."
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );
