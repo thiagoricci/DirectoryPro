@@ -74,8 +74,8 @@ const ClientLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-accent/20 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/30 p-4">
+      <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="h-12 w-12 rounded-xl bg-primary mx-auto mb-4"></div>
           <CardTitle className="text-2xl">Client Directory Access</CardTitle>

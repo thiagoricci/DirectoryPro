@@ -31,8 +31,7 @@ export function Layout({ children }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Hide navigation for client-specific routes
-  const isClientRoute = location.pathname === "/client-login" || 
-                       location.pathname === "/directory" ||
+  const isClientRoute = location.pathname === "/directory" ||
                        location.pathname.startsWith("/directory/");
 
   const isActive = (path: string) => location.pathname === path;
@@ -43,7 +42,6 @@ export function Layout({ children }: LayoutProps) {
     { name: 'My Directory', path: '/directory/demo', icon: Eye },
   ] : [
     { name: 'Home', path: '/', icon: Home },
-    { name: 'Demo Directory', path: '/directory/demo', icon: ExternalLink },
   ];
 
   const handleLogout = async () => {
