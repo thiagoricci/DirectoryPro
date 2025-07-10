@@ -31,21 +31,33 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     setIsLoading(true);
     
     try {
+      let result;
       if (isSignUp) {
-        await signup(formData.email, formData.password, formData.name);
+        result = await signup(formData.email, formData.password, formData.name, formData.company);
       } else {
-        await login(formData.email, formData.password);
+        result = await login(formData.email, formData.password);
+      }
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
       }
       
       toast({
         title: isSignUp ? "Account created" : "Login successful",
-        description: "Welcome to Directory Pro!",
+        description: isSignUp ? "Please check your email to confirm your account" : "Welcome to Directory Pro!",
       });
       
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        navigate('/dashboard');
+      if (!isSignUp) {
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (error) {
       toast({

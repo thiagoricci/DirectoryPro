@@ -41,8 +41,8 @@ export function Layout({ children }: LayoutProps) {
     { name: 'Demo Directory', path: '/directory/demo', icon: ExternalLink },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setIsMobileMenuOpen(false);
   };
 
