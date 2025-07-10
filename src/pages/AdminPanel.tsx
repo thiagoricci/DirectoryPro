@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,12 +6,26 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Palette, Eye, Save, RotateCcw } from 'lucide-react';
+import { Upload, Palette, Eye, Save, RotateCcw, Plus, Trash2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface ClientAccess {
+  id: string;
+  client_email: string;
+  created_at: string;
+  expires_at?: string;
+  is_active: boolean;
+}
 
 const AdminPanel = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [clientAccess, setClientAccess] = useState<ClientAccess[]>([]);
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [isLoadingClients, setIsLoadingClients] = useState(false);
   const [settings, setSettings] = useState({
     businessName: 'Your Real Estate Business',
     tagline: 'Trusted Service Providers',
@@ -22,6 +36,117 @@ const AdminPanel = () => {
     contactPhone: '(555) 123-4567',
     bio: 'Professional real estate services with a curated network of trusted providers.',
   });
+
+  useEffect(() => {
+    if (user) {
+      fetchClientAccess();
+    }
+  }, [user]);
+
+  const fetchClientAccess = async () => {
+    if (!user) return;
+    
+    setIsLoadingClients(true);
+    try {
+      const { data, error } = await supabase
+        .from('client_access')
+        .select('*')
+        .eq('realtor_user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching client access:', error);
+        toast({
+          title: "Error Loading Clients",
+          description: "Unable to load client access list.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setClientAccess(data || []);
+    } catch (error) {
+      console.error('Error fetching client access:', error);
+    } finally {
+      setIsLoadingClients(false);
+    }
+  };
+
+  const addClientAccess = async () => {
+    if (!user || !newClientEmail || !newClientEmail.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('client_access')
+        .insert({
+          realtor_user_id: user.id,
+          client_email: newClientEmail.toLowerCase().trim(),
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast({
+            title: "Client Already Added",
+            description: "This client already has access to your directory.",
+            variant: "destructive",
+          });
+        } else {
+          console.error('Error adding client access:', error);
+          toast({
+            title: "Error Adding Client",
+            description: "Unable to add client access. Please try again.",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      toast({
+        title: "Client Added Successfully",
+        description: `${newClientEmail} can now access your directory.`,
+      });
+      
+      setNewClientEmail('');
+      fetchClientAccess();
+    } catch (error) {
+      console.error('Error adding client access:', error);
+    }
+  };
+
+  const removeClientAccess = async (id: string, email: string) => {
+    try {
+      const { error } = await supabase
+        .from('client_access')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error removing client access:', error);
+        toast({
+          title: "Error Removing Access",
+          description: "Unable to remove client access. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Access Removed",
+        description: `${email} no longer has access to your directory.`,
+      });
+      
+      fetchClientAccess();
+    } catch (error) {
+      console.error('Error removing client access:', error);
+    }
+  };
 
   const handleSave = () => {
     // Save settings logic here
@@ -83,10 +208,11 @@ const AdminPanel = () => {
         {/* Settings Panel */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="branding" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="branding">Branding</TabsTrigger>
               <TabsTrigger value="theme">Theme</TabsTrigger>
               <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="clients">Clients</TabsTrigger>
             </TabsList>
 
             {/* Branding Tab */}
@@ -262,6 +388,99 @@ const AdminPanel = () => {
                       value={settings.bio}
                       onChange={(e) => setSettings({ ...settings, bio: e.target.value })}
                     />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Client Management Tab */}
+            <TabsContent value="clients" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Client Directory Access
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor="clientEmail">Client Email Address</Label>
+                      <Input
+                        id="clientEmail"
+                        type="email"
+                        placeholder="client@example.com"
+                        value={newClientEmail}
+                        onChange={(e) => setNewClientEmail(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addClientAccess()}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button 
+                        onClick={addClientAccess}
+                        disabled={!newClientEmail || !newClientEmail.includes('@')}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Client
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg">
+                    <div className="p-4 border-b bg-muted/50">
+                      <h4 className="font-medium">Authorized Clients</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Clients who can access your service provider directory
+                      </p>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {isLoadingClients ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          Loading clients...
+                        </div>
+                      ) : clientAccess.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          No clients have been granted access yet.
+                        </div>
+                      ) : (
+                        clientAccess.map((client) => (
+                          <div
+                            key={client.id}
+                            className="flex items-center justify-between p-4 border-b last:border-b-0"
+                          >
+                            <div>
+                              <p className="font-medium">{client.client_email}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Added {new Date(client.created_at).toLocaleDateString()}
+                                {client.expires_at && ` • Expires ${new Date(client.expires_at).toLocaleDateString()}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={client.is_active ? "default" : "secondary"}>
+                                {client.is_active ? "Active" : "Inactive"}
+                              </Badge>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeClientAccess(client.id, client.client_email)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                    <p className="font-medium mb-1">How it works:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Add client email addresses to grant access to your directory</li>
+                      <li>Clients visit the client login page and enter their email</li>
+                      <li>They'll see your service provider directory in read-only mode</li>
+                      <li>Remove access anytime by clicking the trash icon</li>
+                    </ul>
                   </div>
                 </CardContent>
               </Card>

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_access: {
+        Row: {
+          client_email: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          realtor_user_id: string
+        }
+        Insert: {
+          client_email: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          realtor_user_id: string
+        }
+        Update: {
+          client_email?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          realtor_user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company: string | null
@@ -85,7 +112,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_client_access: {
+        Args: { client_email_param: string }
+        Returns: {
+          realtor_user_id: string
+          realtor_name: string
+          realtor_company: string
+          access_granted: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

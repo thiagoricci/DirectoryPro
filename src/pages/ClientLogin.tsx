@@ -4,21 +4,73 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LogIn } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const ClientLogin = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleLogin = async () => {
     if (!email || !email.includes('@')) return;
     
     setIsLoading(true);
-    // Mock authentication - in real app, check if client email exists
-    setTimeout(() => {
+    
+    try {
+      // Check if client has access to any realtor's directory
+      const { data, error } = await supabase.rpc('get_client_access', {
+        client_email_param: email
+      });
+
+      if (error) {
+        console.error('Error checking client access:', error);
+        toast({
+          title: "Access Error",
+          description: "Unable to verify access. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        toast({
+          title: "Access Denied",
+          description: "Your email is not authorized to access any directory. Please contact your realtor.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const clientAccess = data[0];
+      
+      if (!clientAccess.access_granted) {
+        toast({
+          title: "Access Expired",
+          description: "Your access has expired. Please contact your realtor.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Store client access info in localStorage
       localStorage.setItem('clientEmail', email);
+      localStorage.setItem('realtorUserId', clientAccess.realtor_user_id);
+      localStorage.setItem('realtorName', clientAccess.realtor_name || '');
+      localStorage.setItem('realtorCompany', clientAccess.realtor_company || '');
+      
+      // Redirect to directory
       window.location.href = '/directory';
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

@@ -30,6 +30,11 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Hide navigation for client-specific routes
+  const isClientRoute = location.pathname === "/client-login" || 
+                       location.pathname === "/directory" ||
+                       location.pathname.startsWith("/directory/");
+
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = isAuthenticated ? [
@@ -48,7 +53,8 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50">
+      {!isClientRoute && (
+        <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -162,7 +168,8 @@ export function Layout({ children }: LayoutProps) {
             </div>
           )}
         </div>
-      </header>
+        </header>
+      )}
       <main>{children}</main>
     </div>
   );

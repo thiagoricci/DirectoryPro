@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Phone, Mail, User, LogOut } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Provider {
   id: string;
@@ -11,77 +13,92 @@ interface Provider {
   category: string;
   phone?: string;
   email?: string;
+  contact_name?: string;
 }
-
-const sampleProviders: Provider[] = [
-  {
-    id: '1',
-    name: 'Mike\'s Plumbing Solutions',
-    category: 'Plumbing',
-    phone: '(555) 123-4567',
-    email: 'mike@plumbingsolutions.com'
-  },
-  {
-    id: '2',
-    name: 'Elite Home Inspections',
-    category: 'Home Inspector',
-    phone: '(555) 987-6543',
-    email: 'info@eliteinspections.com'
-  },
-  {
-    id: '3',
-    name: 'First National Mortgage',
-    category: 'Lender',
-    phone: '(555) 456-7890',
-    email: 'loans@firstnational.com'
-  },
-  {
-    id: '4',
-    name: 'Bright Electric Co.',
-    category: 'Electrical',
-    phone: '(555) 234-5678',
-    email: 'service@brightelectric.com'
-  },
-  {
-    id: '5',
-    name: 'Premium Title Services',
-    category: 'Title Company',
-    phone: '(555) 345-6789',
-    email: 'info@premiumtitle.com'
-  }
-];
 
 export function ClientDirectory() {
   const [clientEmail, setClientEmail] = useState<string>('');
+  const [realtorName, setRealtorName] = useState<string>('');
+  const [realtorCompany, setRealtorCompany] = useState<string>('');
+  const [realtorUserId, setRealtorUserId] = useState<string>('');
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const email = localStorage.getItem('clientEmail');
-    if (!email) {
+    const userId = localStorage.getItem('realtorUserId');
+    const name = localStorage.getItem('realtorName');
+    const company = localStorage.getItem('realtorCompany');
+    
+    if (!email || !userId) {
       window.location.href = '/client-login';
       return;
     }
+    
     setClientEmail(email);
+    setRealtorUserId(userId);
+    setRealtorName(name || '');
+    setRealtorCompany(company || '');
+    
+    fetchProviders(userId);
   }, []);
+
+  const fetchProviders = async (userId: string) => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('service_providers')
+        .select('*')
+        .eq('user_id', userId)
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching providers:', error);
+        toast({
+          title: "Error Loading Directory",
+          description: "Unable to load service providers. Please try refreshing the page.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setProviders(data || []);
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+      toast({
+        title: "Error Loading Directory",
+        description: "An unexpected error occurred while loading the directory.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('clientEmail');
+    localStorage.removeItem('realtorUserId');
+    localStorage.removeItem('realtorName');
+    localStorage.removeItem('realtorCompany');
     window.location.href = '/client-login';
   };
 
-  if (!clientEmail) {
+  if (!clientEmail || !realtorUserId) {
     return null; // Will redirect to login
   }
   
-  const filteredProviders = sampleProviders.filter(provider => {
+  const filteredProviders = providers.filter(provider => {
     const matchesSearch = provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          provider.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || provider.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const categories = [...new Set(sampleProviders.map(p => p.category))];
+  const categories = [...new Set(providers.map(p => p.category))];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-accent/20">
@@ -101,14 +118,18 @@ export function ClientDirectory() {
             <div className="flex items-center justify-center mb-4">
               <div className="h-12 w-12 rounded-xl bg-primary mr-3"></div>
               <div className="text-left">
-                <h1 className="text-2xl font-bold text-foreground">Sarah Johnson</h1>
-                <p className="text-sm text-muted-foreground">Licensed Real Estate Agent</p>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {realtorName || 'Your Realtor'}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {realtorCompany || 'Licensed Real Estate Agent'}
+                </p>
               </div>
             </div>
             <h2 className="text-3xl font-bold text-foreground mb-2">Trusted Service Providers</h2>
             <p className="text-muted-foreground">
-              These are my personally recommended professionals for all your home-related needs. 
-              I've worked with each of them and trust them to take great care of you.
+              These are {realtorName ? `${realtorName}'s` : 'your realtor\'s'} personally recommended professionals for all your home-related needs. 
+              They have been carefully selected to provide you with excellent service.
             </p>
           </div>
         </div>
@@ -184,9 +205,17 @@ export function ClientDirectory() {
           )}
         </div>
 
-        {/* Providers Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {filteredProviders.map((provider) => (
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading directory...</p>
+          </div>
+        ) : (
+          <>
+            {/* Providers Grid */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {filteredProviders.map((provider) => (
             <Card key={provider.id} className="hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
               <CardContent className="p-6">
                 <div className="flex items-start space-x-4">
@@ -259,19 +288,14 @@ export function ClientDirectory() {
           </Card>
         )}
 
-        {/* Footer */}
-        <div className="mt-12 text-center py-8 border-t">
-          <p className="text-sm text-muted-foreground">
-            Questions about these recommendations? Contact Sarah at{' '}
-            <a href="tel:(555) 000-0000" className="text-primary hover:underline">
-              (555) 000-0000
-            </a>{' '}
-            or{' '}
-            <a href="mailto:sarah@realestate.com" className="text-primary hover:underline">
-              sarah@realestate.com
-            </a>
-          </p>
-        </div>
+            {/* Footer */}
+            <div className="mt-12 text-center py-8 border-t">
+              <p className="text-sm text-muted-foreground">
+                Questions about these recommendations? Contact {realtorName || 'your realtor'} for more information.
+              </p>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
