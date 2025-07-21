@@ -19,7 +19,7 @@ const ClientLogin = () => {
     
     try {
       // Check if client has access to any realtor's directory
-      const { data, error } = await supabase.rpc('get_client_access', {
+      const { data, error } = await supabase.rpc('verify_client_access', {
         client_email_param: email.toLowerCase().trim()
       });
 

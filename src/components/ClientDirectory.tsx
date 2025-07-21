@@ -78,11 +78,11 @@ export function ClientDirectory() {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase
-        .from('service_providers')
-        .select('*')
-        .eq('user_id', userId)
-        .order('name');
+      // Use the service role or a public function to bypass RLS for client access
+      // Since clients don't have auth sessions, we need to fetch data differently
+      const { data, error } = await supabase.rpc('get_realtor_providers', {
+        realtor_user_id: userId
+      });
 
       if (error) {
         console.error('Error fetching providers:', error);
@@ -111,30 +111,33 @@ export function ClientDirectory() {
   const fetchRealtorSettings = async (userId: string) => {
     console.log('Fetching realtor settings for userId:', userId); // Debug log
     try {
-      const { data, error } = await supabase
-        .from('realtor_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      // Use a public function to get realtor settings for client view
+      const { data, error } = await supabase.rpc('get_realtor_settings', {
+        realtor_user_id: userId
+      });
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error) {
         console.error('Error fetching realtor settings:', error);
         return;
       }
 
       if (data) {
         console.log('Fetched realtor settings:', data); // Debug log
-        setRealtorSettings({
-          business_name: data.business_name,
-          tagline: data.tagline,
-          logo_url: data.logo_url || '',
-          primary_color: data.primary_color,
-          secondary_color: data.secondary_color,
-          accent_color: data.accent_color,
-          contact_email: data.contact_email || '',
-          contact_phone: data.contact_phone || '',
-          bio: data.bio,
-        });
+        // data is now an array from the RPC function
+        const settings = Array.isArray(data) ? data[0] : data;
+        if (settings) {
+          setRealtorSettings({
+            business_name: settings.business_name,
+            tagline: settings.tagline,
+            logo_url: settings.logo_url || '',
+            primary_color: settings.primary_color,
+            secondary_color: settings.secondary_color,
+            accent_color: settings.accent_color,
+            contact_email: settings.contact_email || '',
+            contact_phone: settings.contact_phone || '',
+            bio: settings.bio,
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching realtor settings:', error);
