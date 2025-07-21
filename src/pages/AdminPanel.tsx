@@ -139,11 +139,13 @@ const AdminPanel = () => {
     }
 
     try {
+      const emailToAdd = newClientEmail.toLowerCase().trim();
+      
       const { error } = await supabase
         .from('client_access')
         .insert({
           realtor_user_id: user.id,
-          client_email: newClientEmail.toLowerCase().trim(),
+          client_email: emailToAdd,
         });
 
       if (error) {
@@ -166,7 +168,7 @@ const AdminPanel = () => {
 
       toast({
         title: "Client Added Successfully",
-        description: `${newClientEmail} can now access your directory.`,
+        description: `${emailToAdd} can now access your directory.`,
       });
       
       setNewClientEmail('');

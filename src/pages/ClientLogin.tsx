@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogIn } from 'lucide-react';
+import { LogIn, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,7 +20,7 @@ const ClientLogin = () => {
     try {
       // Check if client has access to any realtor's directory
       const { data, error } = await supabase.rpc('get_client_access', {
-        client_email_param: email
+        client_email_param: email.toLowerCase().trim()
       });
 
       if (error) {
@@ -32,6 +32,8 @@ const ClientLogin = () => {
         });
         return;
       }
+
+      console.log('Client access data:', data); // Debug log
 
       if (!data || data.length === 0) {
         toast({
@@ -54,13 +56,20 @@ const ClientLogin = () => {
       }
 
       // Store client access info in localStorage
-      localStorage.setItem('clientEmail', email);
+      localStorage.setItem('clientEmail', email.toLowerCase().trim());
       localStorage.setItem('realtorUserId', clientAccess.realtor_user_id);
       localStorage.setItem('realtorName', clientAccess.realtor_name || '');
       localStorage.setItem('realtorCompany', clientAccess.realtor_company || '');
       
+      toast({
+        title: "Access Granted",
+        description: `Welcome! Redirecting to ${clientAccess.realtor_name || 'your realtor'}'s directory...`,
+      });
+      
       // Redirect to directory
-      window.location.href = '/directory';
+      setTimeout(() => {
+        window.location.href = '/directory';
+      }, 1000);
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -101,7 +110,10 @@ const ClientLogin = () => {
             disabled={!email || !email.includes('@') || isLoading}
           >
             {isLoading ? (
-              'Signing in...'
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Checking access...
+              </>
             ) : (
               <>
                 <LogIn className="h-4 w-4 mr-2" />

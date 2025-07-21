@@ -56,7 +56,10 @@ export function ClientDirectory() {
     const name = localStorage.getItem('realtorName');
     const company = localStorage.getItem('realtorCompany');
     
+    console.log('ClientDirectory - localStorage data:', { email, userId, name, company }); // Debug log
+    
     if (!email || !userId) {
+      console.log('Missing email or userId, redirecting to client login');
       window.location.href = '/client-login';
       return;
     }
@@ -71,6 +74,7 @@ export function ClientDirectory() {
   }, []);
 
   const fetchProviders = async (userId: string) => {
+    console.log('Fetching providers for userId:', userId); // Debug log
     try {
       setIsLoading(true);
       
@@ -90,6 +94,7 @@ export function ClientDirectory() {
         return;
       }
 
+      console.log('Fetched providers:', data); // Debug log
       setProviders(data || []);
     } catch (error) {
       console.error('Error fetching providers:', error);
@@ -104,6 +109,7 @@ export function ClientDirectory() {
   };
 
   const fetchRealtorSettings = async (userId: string) => {
+    console.log('Fetching realtor settings for userId:', userId); // Debug log
     try {
       const { data, error } = await supabase
         .from('realtor_settings')
@@ -117,6 +123,7 @@ export function ClientDirectory() {
       }
 
       if (data) {
+        console.log('Fetched realtor settings:', data); // Debug log
         setRealtorSettings({
           business_name: data.business_name,
           tagline: data.tagline,

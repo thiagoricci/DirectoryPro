@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
 import ClientDirectory from "./pages/ClientDirectory";
 import NotFound from "./pages/NotFound";
+import DebugClientAccess from "./pages/DebugClientAccess";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,11 @@ const App = () => (
               } />
               <Route path="/directory" element={<ClientDirectory />} />
               <Route path="/directory/:realtorId" element={<ClientDirectory />} />
+              <Route path="/debug-client-access" element={
+                <ProtectedRoute>
+                  <DebugClientAccess />
+                </ProtectedRoute>
+              } />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
