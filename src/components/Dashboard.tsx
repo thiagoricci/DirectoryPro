@@ -300,40 +300,6 @@ Elite Home Inspections,Home Inspector,Sarah Chen,(555) 987-6543,info@elite.com,V
           </CardContent>
         </Card>
 
-        <Card className="bg-accent border-accent">
-          <CardContent className="p-6">
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground">Client Access Management</p>
-              <div className="flex items-center space-x-2">
-                <Input
-                  placeholder="Enter client email..."
-                  value={newClientEmail}
-                  onChange={(e) => setNewClientEmail(e.target.value)}
-                  className="text-sm"
-                />
-                <Button size="sm" onClick={handleAddClient}>
-                  Add Client
-                </Button>
-              </div>
-              {clients.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">{clients.length} client(s) with access</p>
-                  {clients.slice(0, 2).map((client) => (
-                    <div key={client.id} className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{client.email}</span>
-                      <Button size="sm" variant="ghost" onClick={() => handleRemoveClient(client.id)}>
-                        ×
-                      </Button>
-                    </div>
-                  ))}
-                  {clients.length > 2 && (
-                    <p className="text-xs text-muted-foreground">+{clients.length - 2} more</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Add */}

@@ -10,6 +10,7 @@ import { Upload, Palette, Eye, Save, RotateCcw, Plus, Trash2, Users, Loader2 } f
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ClientAccess {
   id: string;
@@ -216,9 +217,59 @@ const AdminPanel = () => {
         .upsert({
           user_id: user.id,
           ...settings,
+        }, {
+          onConflict: 'user_id',
         });
 
       if (error) throw error;
+
+      // Apply theme changes immediately
+      const root = document.documentElement;
+      
+      // Convert hex to HSL for CSS custom properties
+      const hexToHsl = (hex: string): string => {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h = 0, s = 0, l = (max + min) / 2;
+
+        if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          
+          switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+          }
+        }
+
+        return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+      };
+
+      const getContrastColor = (hexColor: string): string => {
+        const r = parseInt(hexColor.slice(1, 3), 16);
+        const g = parseInt(hexColor.slice(3, 5), 16);
+        const b = parseInt(hexColor.slice(5, 7), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance > 0.5 ? '0 0% 0%' : '0 0% 100%';
+      };
+
+      // Apply theme changes
+      root.style.setProperty('--color-primary', settings.primary_color);
+      root.style.setProperty('--color-secondary', settings.secondary_color);
+      root.style.setProperty('--color-accent', settings.accent_color);
+      
+      root.style.setProperty('--primary', hexToHsl(settings.primary_color));
+      root.style.setProperty('--secondary', hexToHsl(settings.secondary_color));
+      root.style.setProperty('--accent', hexToHsl(settings.accent_color));
+      
+      root.style.setProperty('--primary-foreground', getContrastColor(settings.primary_color));
+      root.style.setProperty('--secondary-foreground', getContrastColor(settings.secondary_color));
+      root.style.setProperty('--accent-foreground', getContrastColor(settings.accent_color));
 
       toast({
         title: "Settings Saved",
@@ -324,10 +375,11 @@ const AdminPanel = () => {
   };
 
   const themePresets = [
-    { name: 'Professional Blue', primary: '#3b82f6', secondary: '#1e40af', accent: '#06b6d4' },
-    { name: 'Elegant Gold', primary: '#eab308', secondary: '#ca8a04', accent: '#f59e0b' },
-    { name: 'Modern Green', primary: '#22c55e', secondary: '#16a34a', accent: '#10b981' },
-    { name: 'Classic Red', primary: '#ef4444', secondary: '#dc2626', accent: '#f87171' },
+    { name: 'Default Blue', primary: '#3b82f6', secondary: '#1e40af', accent: '#06b6d4' },
+    { name: 'Professional Slate', primary: '#475569', secondary: '#64748b', accent: '#94a3b8' },
+    { name: 'Navy Blue', primary: '#1e40af', secondary: '#3b82f6', accent: '#60a5fa' },
+    { name: 'Ruby Red', primary: '#dc2626', secondary: '#ef4444', accent: '#f87171' },
+    { name: 'Dark Brown', primary: '#7c2d12', secondary: '#a16207', accent: '#ca8a04' },
   ];
 
   return (

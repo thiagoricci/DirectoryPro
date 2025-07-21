@@ -15,50 +15,41 @@
     --popover: 0 0% 100%;
     --popover-foreground: 213 31% 12%;
 
-    /* Professional blue-gray primary */
-    --primary: 213 84% 35%;
-    --primary-foreground: 0 0% 98%;
-    --primary-hover: 213 84% 30%;
-
-    /* Warm secondary accent */
-    --secondary: 213 15% 96%;
-    --secondary-foreground: 213 31% 12%;
+    /* Dynamic theme colors - will be overridden by JavaScript */
+    --primary: var(--color-primary, 213 84% 35%);
+    --primary-foreground: var(--color-primary-foreground, 0 0% 98%);
+    
+    --secondary: var(--color-secondary, 213 15% 96%);
+    --secondary-foreground: var(--color-secondary-foreground, 213 31% 12%);
+    
+    --accent: var(--color-accent, 43 96% 92%);
+    --accent-foreground: var(--color-accent-foreground, 213 31% 12%);
 
     --muted: 213 15% 96%;
     --muted-foreground: 213 16% 55%;
-
-    --accent: 43 96% 92%;
-    --accent-foreground: 213 31% 12%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 213 27% 89%;
     --input: 213 27% 89%;
-    --ring: 213 84% 35%;
+    --ring: var(--color-primary, 213 84% 35%);
 
     --radius: 0.75rem;
 
     /* Custom design tokens */
-    --hero-gradient: linear-gradient(135deg, hsl(213 84% 35%), hsl(213 84% 45%));
-    --card-shadow: 0 4px 6px -1px hsl(213 84% 35% / 0.08), 0 2px 4px -1px hsl(213 84% 35% / 0.06);
-    --card-shadow-hover: 0 10px 25px -3px hsl(213 84% 35% / 0.1), 0 4px 6px -2px hsl(213 84% 35% / 0.05);
+    --hero-gradient: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8));
+    --card-shadow: 0 4px 6px -1px hsl(var(--primary) / 0.08), 0 2px 4px -1px hsl(var(--primary) / 0.06);
+    --card-shadow-hover: 0 10px 25px -3px hsl(var(--primary) / 0.1), 0 4px 6px -2px hsl(var(--primary) / 0.05);
     --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 

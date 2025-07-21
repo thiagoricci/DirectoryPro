@@ -80,7 +80,7 @@ export function ClientDirectory() {
       
       // Use the service role or a public function to bypass RLS for client access
       // Since clients don't have auth sessions, we need to fetch data differently
-      const { data, error } = await supabase.rpc('get_realtor_providers', {
+      const { data, error } = await (supabase as any).rpc('get_realtor_providers', {
         realtor_user_id: userId
       });
 
@@ -95,7 +95,7 @@ export function ClientDirectory() {
       }
 
       console.log('Fetched providers:', data); // Debug log
-      setProviders(data || []);
+      setProviders((data as Provider[]) || []);
     } catch (error) {
       console.error('Error fetching providers:', error);
       toast({
@@ -112,7 +112,7 @@ export function ClientDirectory() {
     console.log('Fetching realtor settings for userId:', userId); // Debug log
     try {
       // Use a public function to get realtor settings for client view
-      const { data, error } = await supabase.rpc('get_realtor_settings', {
+      const { data, error } = await (supabase as any).rpc('get_realtor_settings', {
         realtor_user_id: userId
       });
 
@@ -127,15 +127,15 @@ export function ClientDirectory() {
         const settings = Array.isArray(data) ? data[0] : data;
         if (settings) {
           setRealtorSettings({
-            business_name: settings.business_name,
-            tagline: settings.tagline,
-            logo_url: settings.logo_url || '',
-            primary_color: settings.primary_color,
-            secondary_color: settings.secondary_color,
-            accent_color: settings.accent_color,
-            contact_email: settings.contact_email || '',
-            contact_phone: settings.contact_phone || '',
-            bio: settings.bio,
+            business_name: (settings as any).business_name,
+            tagline: (settings as any).tagline,
+            logo_url: (settings as any).logo_url || '',
+            primary_color: (settings as any).primary_color,
+            secondary_color: (settings as any).secondary_color,
+            accent_color: (settings as any).accent_color,
+            contact_email: (settings as any).contact_email || '',
+            contact_phone: (settings as any).contact_phone || '',
+            bio: (settings as any).bio,
           });
         }
       }
@@ -149,7 +149,7 @@ export function ClientDirectory() {
     localStorage.removeItem('realtorUserId');
     localStorage.removeItem('realtorName');
     localStorage.removeItem('realtorCompany');
-    window.location.href = '/client-login';
+    window.location.href = '/';
   };
 
   if (!clientEmail || !realtorUserId) {
@@ -166,15 +166,20 @@ export function ClientDirectory() {
   const categories = [...new Set(providers.map(p => p.category))];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-accent/20">
+    <div className="min-h-screen" style={{ background: `linear-gradient(135deg, ${realtorSettings.primary_color}08 0%, ${realtorSettings.accent_color}08 100%)` }}>
       {/* Header */}
-      <div className="bg-card border-b">
+      <div className="bg-card border-b" style={{ borderColor: `${realtorSettings.primary_color}20` }}>
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-start mb-6">
             <div className="text-sm text-muted-foreground">
               Logged in as: {clientEmail}
             </div>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout}
+              style={{ borderColor: `${realtorSettings.primary_color}40`, color: realtorSettings.primary_color }}
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -191,20 +196,22 @@ export function ClientDirectory() {
                 </div>
               ) : (
                 <div 
-                  className="h-12 w-12 rounded-xl mr-3"
+                  className="h-12 w-12 rounded-xl mr-3 flex items-center justify-center"
                   style={{ backgroundColor: realtorSettings.primary_color }}
-                ></div>
+                >
+                  <div className="h-8 w-8 bg-white/20 rounded"></div>
+                </div>
               )}
               <div className="text-left">
                 <h1 className="text-2xl font-bold text-foreground">
-                  {realtorSettings.business_name}
+                  {realtorCompany || realtorSettings.business_name}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {realtorCompany || 'Licensed Real Estate Agent'}
+                  {realtorSettings.business_name}
                 </p>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-foreground mb-2">{realtorSettings.tagline}</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-2" style={{ color: realtorSettings.primary_color }}>{realtorSettings.tagline}</h2>
             <p className="text-muted-foreground">
               {realtorSettings.bio}
             </p>

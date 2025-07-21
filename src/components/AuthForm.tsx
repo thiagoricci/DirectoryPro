@@ -74,12 +74,9 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/30 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="h-12 w-12 rounded-xl bg-primary mr-3"></div>
-            <div className="text-left">
-              <h1 className="text-2xl font-bold text-foreground">Directory Pro</h1>
-              <p className="text-sm text-muted-foreground">For Real Estate Professionals</p>
-            </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-foreground">Directory Pro</h1>
+            <p className="text-sm text-muted-foreground">For Real Estate Professionals</p>
           </div>
         </div>
 

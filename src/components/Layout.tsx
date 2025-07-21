@@ -39,7 +39,7 @@ export function Layout({ children }: LayoutProps) {
   const navItems = isAuthenticated ? [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Admin Panel', path: '/admin', icon: Settings },
-    { name: 'My Directory', path: '/directory/demo', icon: Eye },
+    { name: 'My Directory', path: '/realtor-directory', icon: Eye },
   ] : [
     { name: 'Home', path: '/', icon: Home },
   ];
@@ -47,6 +47,7 @@ export function Layout({ children }: LayoutProps) {
   const handleLogout = async () => {
     await logout();
     setIsMobileMenuOpen(false);
+    window.location.href = '/';
   };
 
   return (
@@ -57,7 +58,6 @@ export function Layout({ children }: LayoutProps) {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-primary"></div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">Directory Pro</h1>
                 <p className="text-sm text-muted-foreground">Realtor Service Directory</p>
