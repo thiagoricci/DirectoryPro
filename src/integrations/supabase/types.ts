@@ -14,13 +14,133 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      client_access: {
+        Row: {
+          client_email: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          realtor_id: string
+        }
+        Insert: {
+          client_email: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          realtor_id: string
+        }
+        Update: {
+          client_email?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          realtor_id?: string
+        }
+        Relationships: []
+      }
+      realtor_settings: {
+        Row: {
+          accent_color: string | null
+          bio: string | null
+          business_name: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          tagline: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          bio?: string | null
+          business_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          bio?: string | null
+          business_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      service_providers: {
+        Row: {
+          category: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          realtor_id: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          realtor_id: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          realtor_id?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      verify_client_access: {
+        Args: { client_email_input: string }
+        Returns: {
+          realtor_company: string
+          realtor_id: string
+          realtor_name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
