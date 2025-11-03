@@ -7,168 +7,20 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
-      client_access: {
-        Row: {
-          client_email: string
-          created_at: string
-          expires_at: string | null
-          id: string
-          is_active: boolean
-          realtor_user_id: string
-        }
-        Insert: {
-          client_email: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          realtor_user_id: string
-        }
-        Update: {
-          client_email?: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean
-          realtor_user_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          company: string | null
-          created_at: string
-          full_name: string | null
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          company?: string | null
-          created_at?: string
-          full_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          company?: string | null
-          created_at?: string
-          full_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      realtor_settings: {
-        Row: {
-          accent_color: string | null
-          bio: string | null
-          business_name: string | null
-          contact_email: string | null
-          contact_phone: string | null
-          created_at: string | null
-          id: string
-          logo_url: string | null
-          primary_color: string | null
-          secondary_color: string | null
-          tagline: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          accent_color?: string | null
-          bio?: string | null
-          business_name?: string | null
-          contact_email?: string | null
-          contact_phone?: string | null
-          created_at?: string | null
-          id?: string
-          logo_url?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          tagline?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          accent_color?: string | null
-          bio?: string | null
-          business_name?: string | null
-          contact_email?: string | null
-          contact_phone?: string | null
-          created_at?: string | null
-          id?: string
-          logo_url?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          tagline?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      service_providers: {
-        Row: {
-          category: string
-          contact_name: string | null
-          created_at: string
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          category: string
-          contact_name?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          category?: string
-          contact_name?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_client_access: {
-        Args: { client_email_param: string }
-        Returns: {
-          realtor_user_id: string
-          realtor_name: string
-          realtor_company: string
-          access_granted: boolean
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
