@@ -108,7 +108,7 @@ const AdminPanel = () => {
       const { data, error } = await supabase
         .from('client_access')
         .select('*')
-        .eq('realtor_user_id', user.id)
+        .eq('realtor_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -145,7 +145,7 @@ const AdminPanel = () => {
       const { error } = await supabase
         .from('client_access')
         .insert({
-          realtor_user_id: user.id,
+          realtor_id: user.id,
           client_email: emailToAdd,
         });
 

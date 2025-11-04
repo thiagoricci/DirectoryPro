@@ -17,11 +17,6 @@ interface Provider {
   contact_name?: string;
 }
 
-interface Profile {
-  company?: string;
-  full_name?: string;
-}
-
 interface RealtorSettings {
   business_name: string;
   tagline: string;
@@ -39,10 +34,6 @@ export function RealtorDirectory() {
   const { toast } = useToast();
   
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [profile, setProfile] = useState<Profile>({
-    company: 'Your Real Estate Business',
-    full_name: '',
-  });
   const [realtorSettings, setRealtorSettings] = useState<RealtorSettings>({
     business_name: 'Your Real Estate Business',
     tagline: 'Trusted Service Providers',
@@ -63,7 +54,6 @@ export function RealtorDirectory() {
     
     fetchProviders(user.id);
     fetchRealtorSettings(user.id);
-    fetchProfile(user.id);
   }, [user]);
 
   const fetchProviders = async (userId: string) => {
@@ -73,7 +63,7 @@ export function RealtorDirectory() {
       const { data, error } = await supabase
         .from('service_providers')
         .select('*')
-        .eq('user_id', userId)
+        .eq('realtor_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -130,30 +120,6 @@ export function RealtorDirectory() {
     }
   };
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('company, full_name')
-        .eq('user_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
-      if (data) {
-        setProfile({
-          company: data.company || 'Your Real Estate Business',
-          full_name: data.full_name || '',
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
-  };
-
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -194,11 +160,8 @@ export function RealtorDirectory() {
               )}
               <div className="text-left">
                 <h1 className="text-2xl font-bold text-foreground">
-                  {profile.company || realtorSettings.business_name}
-                </h1>
-                <p className="text-sm text-muted-foreground">
                   {realtorSettings.business_name}
-                </p>
+                </h1>
               </div>
             </div>
             <h2 className="text-3xl font-bold text-foreground mb-2">{realtorSettings.tagline}</h2>
@@ -323,7 +286,7 @@ export function RealtorDirectory() {
             {/* Footer */}
             <div className="mt-12 text-center py-8 border-t">
               <p className="text-sm text-muted-foreground mb-2">
-                Questions about these recommendations? Contact {profile.company} for more information.
+                Questions about these recommendations? Contact {realtorSettings.business_name} for more information.
               </p>
               {(realtorSettings.contact_email || realtorSettings.contact_phone) && (
                 <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">

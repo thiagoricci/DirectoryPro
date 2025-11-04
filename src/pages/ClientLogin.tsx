@@ -20,7 +20,7 @@ const ClientLogin = () => {
     try {
       // Check if client has access to any realtor's directory
       const { data, error } = await supabase.rpc('verify_client_access', {
-        client_email_param: email.toLowerCase().trim()
+        client_email_input: email.toLowerCase().trim()
       });
 
       if (error) {
@@ -45,19 +45,10 @@ const ClientLogin = () => {
       }
 
       const clientAccess = data[0];
-      
-      if (!clientAccess.access_granted) {
-        toast({
-          title: "Access Expired",
-          description: "Your access has expired. Please contact your realtor.",
-          variant: "destructive",
-        });
-        return;
-      }
 
       // Store client access info in localStorage
       localStorage.setItem('clientEmail', email.toLowerCase().trim());
-      localStorage.setItem('realtorUserId', clientAccess.realtor_user_id);
+      localStorage.setItem('realtorUserId', clientAccess.realtor_id);
       localStorage.setItem('realtorName', clientAccess.realtor_name || '');
       localStorage.setItem('realtorCompany', clientAccess.realtor_company || '');
       

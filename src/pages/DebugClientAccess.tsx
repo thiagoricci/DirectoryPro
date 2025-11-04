@@ -16,8 +16,8 @@ const DebugClientAccess = () => {
     if (!testEmail) return;
     
     try {
-      const { data, error } = await supabase.rpc('get_client_access', {
-        client_email_param: testEmail.toLowerCase().trim()
+      const { data, error } = await supabase.rpc('verify_client_access', {
+        client_email_input: testEmail.toLowerCase().trim()
       });
 
       setResults({ data, error });
@@ -33,7 +33,7 @@ const DebugClientAccess = () => {
       const { data, error } = await supabase
         .from('client_access')
         .select('*')
-        .eq('realtor_user_id', user.id);
+        .eq('realtor_id', user.id);
 
       setClientAccessRecords(data || []);
     } catch (error) {
@@ -48,7 +48,7 @@ const DebugClientAccess = () => {
       const { error } = await supabase
         .from('client_access')
         .insert({
-          realtor_user_id: user.id,
+          realtor_id: user.id,
           client_email: testEmail.toLowerCase().trim(),
         });
 

@@ -19,7 +19,7 @@ interface Provider {
   phone?: string;
   email?: string;
   notes?: string;
-  user_id: string;
+  realtor_id: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -99,7 +99,7 @@ export function Dashboard() {
         .from('service_providers')
         .insert([{
           ...newProvider,
-          user_id: user.id
+          realtor_id: user.id
         }])
         .select();
 
@@ -210,7 +210,7 @@ Elite Home Inspections,Home Inspector,Sarah Chen,(555) 987-6543,info@elite.com,V
             phone: row.Phone || '',
             email: row.Email || '',
             notes: row.Notes || '',
-            user_id: user.id
+            realtor_id: user.id
           });
         });
 
